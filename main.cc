@@ -1,41 +1,44 @@
 
-
-
 #include "main.h"
 
+//监听套接字初始化
+SockInit sock;
+//连接队列
 ConnectItem connlist[1024];
+//map引擎
 MapEngine map;   
-    //创建解析器对象
-    ProtocolParser parser;   
+//解析器
+ProtocolParser parser;   
+//单日志文件
+WriteAheadLog logfile;
+
+//epoll事件
+int ep_fd ,ep_cnt;
+epoll_event events[MAX_EVENTS];
+epoll_event event;
+
+//监听套接字
+int listen_fd;
+//客户端地址
+struct sockaddr_in client_addr;
+//tokens
+char *tokens[MAX_TOKENS];
+//读缓冲区指针
+char *wbuffer;
+//写缓冲区指针
+char *rbuffer;
+
+
 
 int main(int argc,char* argv[]){
-
-    WriteAheadLog logfile;
-    //logfile.OpenSingleLogFile(std::ios::in | std::ios::out | std::ios::app |std::ios::binary);
+    //恢复数据
     logfile.RestoreFromSingleLog(map,ENABLE_CRC32);
 
-
     //epoll初始化
-    int ep_fd ,ep_cnt;
-    struct sockaddr_in client_addr;
-    
-    //epoll事件数组
-    epoll_event events[MAX_EVENTS];
-    epoll_event event;
     ep_fd = epoll_create(1);
 
-    //监听套接字初始化
-    SockInit sock;
-    int listen_fd = sock.Init(ep_fd);
-
-    //tokens
-    char *tokens[MAX_TOKENS];
-
-
-    //读缓冲区指针
-    char *wbuffer;
-    //写缓冲区指针
-    char *rbuffer;
+    //初始化监听套接字
+    listen_fd = sock.Init(ep_fd);
 
     //开始监听
     while(1){
@@ -66,9 +69,6 @@ int main(int argc,char* argv[]){
 
                     //解析
                     int tokens_cnt = parser.ParseNetCommand(rbuffer,tokens);
-                    for(int i= 0;i<3;i++){
-                        std::cout<<"tokens:"<<tokens[i]<<std::endl;
-                    }                    
 
                     //使用map引擎
                     int operate = map.GetOperate(tokens[0]);
@@ -124,8 +124,7 @@ int main(int argc,char* argv[]){
 
                         }
                     }
-                    
-                    // wbuffer = rbuffer;
+
                     //释放tokens
                     for(int i = 0;i<tokens_cnt;i++){
                         free(tokens[i]);
@@ -134,9 +133,7 @@ int main(int argc,char* argv[]){
             }
             //EPOLLOUT事件
             else if(events[i].events == EPOLLOUT){
-                //测试解析
-                //parser.TestParseTokens(ep_fd,conn_fd,wbuffer);
-
+                //发送数据
                 connlist[conn_fd].SendCb(ep_fd,conn_fd);
             }
         }

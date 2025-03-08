@@ -6,7 +6,7 @@ void ProtocolParser::TestParseTokens(int ep_fd,int conn_fd,char* wbuffer){
     //创建一个连接对象
     ConnectItem connect_item;
     char **tokens;
-    tokens_rbuffer_cnt_ = ParseReadBuffer(wbuffer,tokens);
+    int tokens_rbuffer_cnt_ = ParseReadBuffer(wbuffer,tokens);
     
     std::cout << "tokens_cnt:" << tokens_rbuffer_cnt_<< std::endl;
 
@@ -37,11 +37,12 @@ int ProtocolParser::ParseReadBuffer(char *buffer,char *tokens[]){
 
 
 
-//解析网络传输的命令
+//解析网络传输的命令<op> <key> <value>(允许使用“”包含有空格字符串)
 int ProtocolParser::ParseNetCommand(char* buffer_line,char *tokens[])
 {
     //data structure
     //<operation> <key> <value>
+
     std::string buffer;
     buffer = buffer_line;
 
@@ -153,11 +154,3 @@ std::string ProtocolParser::ParseQuotedString(std::string &quoted_buffer, size_t
     return value;
 }
 
-int ProtocolParser::ParseWalBuffer(char *buffer, char *tokens[],bool is_crc32)
-{
-    //data structure
-    //| OP (1B) | Key Len (4B) | Key (变长) | Value Len (4B) | Value (变长) | CRC32 (4B) |(可选)
-
-    
-    return 0;
-}

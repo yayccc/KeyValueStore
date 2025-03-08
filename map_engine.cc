@@ -2,6 +2,7 @@
 
 
 
+//根据操作字符串返回操作码，-1表示操作错误
 int MapEngine::GetOperate(char *operate){
     if(strcmp(operate,"SET") == 0){
         return 0;
@@ -21,7 +22,7 @@ int MapEngine::GetOperate(char *operate){
 }
 
 
-
+//根据tokens执行SET操作
 void MapEngine::Set(char **tokens){
     if(tokens[1] == NULL || tokens[2] == NULL){
         std::cout<<"SET: KEY OR VALUE ERROR"<<std::endl;
@@ -36,7 +37,7 @@ void MapEngine::Set(char **tokens){
 }
 
 
-
+//根据tokens执行GET操作
 std::string MapEngine::Get(char **tokens){
 
     std::string key,value;

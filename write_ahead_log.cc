@@ -1,8 +1,11 @@
-
+//data structure
+//| OP (1B) | Key Len (4B) | Key (变长) | Value Len (4B) | Value (变长) | CRC32 (4B) |
 
 #include "write_ahead_log.h"
 
 
+
+//0:SET 1:GET 2:MOD 3:DEL
 int WriteAheadLog::GetOperate(char *operate){
     if(strcmp(operate,"SET") == 0){
         return 0;
@@ -22,21 +25,18 @@ int WriteAheadLog::GetOperate(char *operate){
 }
 
 
-//data structure
-//| OP (1B) | Key Len (4B) | Key (变长) | Value Len (4B) | Value (变长) | CRC32 (4B) |
-
 
 WriteAheadLog::WriteAheadLog(){
 }
 
 
+
 WriteAheadLog::~WriteAheadLog(){
     single_log_file_.close();
-
 }
 
 
-
+//以mode模式打开文件，返回是否打开成功
 bool WriteAheadLog::OpenSingleLogFile(std::ios::openmode mode)
 {
     single_log_file_name_ = SINGLE_LOG_FILE_NAME;
@@ -63,7 +63,7 @@ void WriteAheadLog::CloseSingleLogFile(){
 
 
 //从文件以<op> <key> <value>格式恢复数据
-bool WriteAheadLog::RestoreFromSingleLog(MapEngine &map)
+void WriteAheadLog::RestoreFromSingleLog(MapEngine &map)
 {
     // data structure
     // <op> <key> <value>
@@ -103,8 +103,6 @@ bool WriteAheadLog::RestoreFromSingleLog(MapEngine &map)
         }
         memset(tokens,0,sizeof(tokens));
     }
-
-    return false;
 }
 
 
@@ -122,6 +120,7 @@ void WriteAheadLog::RestoreFromSingleLog(MapEngine &map, bool enable_crc32)
     }
     else{
         std::cout<<"log file open failed"<<std::endl;
+        return;
     }
 
     //将文件指针移动到文件头(二进制文件)
@@ -194,16 +193,6 @@ void WriteAheadLog::RestoreFromSingleLog(MapEngine &map, bool enable_crc32)
     }
     single_log_file_.close();
 }
-
-
-
-
-bool WriteAheadLog::WriteToSingleLog(char *MAX_BUFFER,bool enable_crc32)
-{
-
-    return false;
-}
-
 
 
 

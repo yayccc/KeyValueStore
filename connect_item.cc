@@ -2,41 +2,50 @@
 
 
 
+//初始化监听套接字
 int SockInit::Init(int ep_fd){
+
+    //创建监听套接字
     listen_fd_ = check_error("socket",socket(PF_INET,SOCK_STREAM,0));
 
+    //设置server地址
     serv_addr_.sin_family = AF_INET;
     serv_addr_.sin_port = htons(CONNECT_PORT);
     serv_addr_.sin_addr.s_addr = htonl(INADDR_ANY);
 
+    //绑定
     check_error("bind",bind(listen_fd_,(struct sockaddr*)&serv_addr_,sizeof(serv_addr_)));
+    //监听
     check_error("listen",listen(listen_fd_,1000));
 
+    //设置事件为EPOLLIN，添加到epoll事件表
     event_.events = EPOLLIN;
     event_.data.fd = listen_fd_;
-
     check_error("epoll_ctl",epoll_ctl(ep_fd,EPOLL_CTL_ADD,listen_fd_,&event_));
+    
     return listen_fd_;
 }
 
 
-
+//连接客户端
 void ConnectItem::AcceptCb(int ep_fd,int listen_fd, struct sockaddr_in &client_addr){
 
+    //接受连接
     socklen_t client_addr_len = sizeof(client_addr);
     int client_fd = check_error("accept", accept(listen_fd, (struct sockaddr*)&client_addr, &client_addr_len));
 
+    //设置事件为EPOLLIN，添加到epoll事件表
     epoll_event event;
     event.events = EPOLLIN | EPOLLET;
     event.data.fd = client_fd;
-
     epoll_ctl(ep_fd, EPOLL_CTL_ADD, client_fd, &event);
 
+    //打印客户端连接信息
     printf("connect:%d\n", client_fd);
 }
 
 
-//返回rlen_,<0表示无输入,0表示断开连接,>0表示接收到的字节数
+//接收数据,返回rlen_,<0表示无输入,0表示断开连接,>0表示接收到的字节数
 int ConnectItem::RecvCb(int ep_fd,int clnt_fd){
     //invalid file descriptor
     if(clnt_fd < 0){
@@ -81,7 +90,7 @@ int ConnectItem::RecvCb(int ep_fd,int clnt_fd){
 
 
 
-//返回wlen_,<0表示无可写,0表示断开连接,>0表示发送的字节数
+//发送数据,返回wlen_,<0表示无可写,0表示断开连接,>0表示发送的字节数
 int ConnectItem::SendCb(int ep_fd,int clnt_fd){
     //invalid file descriptor
     if (clnt_fd < 0) {

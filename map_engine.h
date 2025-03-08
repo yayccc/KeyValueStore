@@ -20,11 +20,16 @@ public:
     //根据tokens执行GET操作
     std::string Get(char **tokens);
 
+    //根据tokens执行MOD操作
     void Mod(char **tokens);
 
+    //根据tokens执行DEL操作
     void Del(char **tokens);
+
 private:
+    //key-value map
     std::unordered_map<std::string,std::string> string_string_map_;
+    //操作字符串
     const char* Operate[4] = {"SET","GET","MOD","DEL",};
 
 };

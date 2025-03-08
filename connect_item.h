@@ -14,12 +14,15 @@
 #include<iostream>
 #include<string>
 
-
+//连接端口
 const int CONNECT_PORT = 3030;
+//最大事件数
 const int MAX_EVENTS = 1024;
+
 const int MAX_BUFFER = 1024;
 const int BUFFER_SIZE = 1024;
 
+//检查错误码(-1),无错误返回res值
 inline int check_error(const char* msg,int res){
     if(res ==-1){
         perror(msg);
@@ -35,8 +38,11 @@ public:
     int Init(int ep_fd);
 
 private:
+    //监听套接字
     int listen_fd_;
+    //服务器地址
     struct sockaddr_in serv_addr_;
+    //epoll事件
     struct epoll_event event_;
 };
 
@@ -85,10 +91,19 @@ public:
     }
 
 private:
+    //连接套接字
     int connfd_;
+
+    //读缓冲区
     char rbuffer_[BUFFER_SIZE];
-    char wbuffer_[BUFFER_SIZE];
+    
+    //读缓冲区长度
     int rlen_;
+
+    //写缓冲区
+    char wbuffer_[BUFFER_SIZE];
+
+    //写缓冲区长度
     int wlen_;
 
 };
