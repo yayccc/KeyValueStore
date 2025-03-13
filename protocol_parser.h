@@ -6,9 +6,8 @@
 #include <string>
 
 #include "connect_item.h"
+#include "config.h"
 
-
-const int MAX_TOKENS = 10;
 
 class ProtocolParser{
 

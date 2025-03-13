@@ -14,13 +14,7 @@
 #include<iostream>
 #include<string>
 
-//连接端口
-const int CONNECT_PORT = 3030;
-//最大事件数
-const int MAX_EVENTS = 1024;
-
-const int MAX_BUFFER = 1024;
-const int BUFFER_SIZE = 1024;
+#include "config.h" 
 
 //检查错误码(-1),无错误返回res值
 inline int check_error(const char* msg,int res){
@@ -55,6 +49,11 @@ public:
         rlen_ = 0;
         wlen_ = 0;
     }
+
+    ~ConnectItem(){
+    }
+
+
     //连接客户端
     void AcceptCb(int ep_fd,int listen_fd, struct sockaddr_in &client_addr);
     //接收数据
@@ -90,6 +89,21 @@ public:
         rlen_ = strlen(rbuffer_);
     }
 
+    //设置为可写事件
+    void SetReadyWrite(int ep_fd,int clnt_fd){
+        epoll_event event;
+        event.events = EPOLLOUT | EPOLLET;
+        event.data.fd = clnt_fd;
+        epoll_ctl(ep_fd,EPOLL_CTL_MOD,clnt_fd,&event);
+    }
+
+    //设置为可读事件
+    void SetReadyRead(int ep_fd,int clnt_fd){
+        epoll_event event;
+        event.events = EPOLLIN | EPOLLET;
+        event.data.fd = clnt_fd;
+        epoll_ctl(ep_fd,EPOLL_CTL_MOD,clnt_fd,&event);
+    }
 private:
     //连接套接字
     int connfd_;
@@ -106,6 +120,7 @@ private:
     //写缓冲区长度
     int wlen_;
 
+    
 };
     
 
