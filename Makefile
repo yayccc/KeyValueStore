@@ -1,28 +1,20 @@
 
-kvs: main.o map_engine.o protocol_parser.o reactor.o threadpool.o write_ahead_log.o connect_item.o
-	g++ -o kvs main.o map_engine.o protocol_parser.o reactor.o threadpool.o write_ahead_log.o connect_item.o -lpthread -std=c++11
+FLAGS = -lpthread -std=c++11
 
-main.o: main.cc
-	g++ -c main.cc -o main.o -std=c++11
+SRCS = main.cc map_engine.cc protocol_parser.cc reactor.cc threadpool.cc write_ahead_log.cc connect_item.cc
 
-reactor.o: reactor.cc
-	g++ -c reactor.cc -o reactor.o -std=c++11
+OBJS = $(SRCS:.cc=.o)
 
-write_ahead_log.o: write_ahead_log.cc
-	g++ -c write_ahead_log.cc -o write_ahead_log.o -std=c++11
+TARGET = kvs
 
-threadpool.o: threadpool.cc
-	g++ -c threadpool.cc -o threadpool.o -std=c++11
+$(TARGET): $(OBJS)
+	g++ -o $(TARGET) $(OBJS) $(FLAGS)
 
-connect_item.o: connect_item.cc
-	g++ -c connect_item.cc -o connect_item.o -std=c++11
+%.o: %.cc
+	g++ -c $< -o $@ $(FLAGS)
 
-map_engine.o: map_engine.cc
-	g++ -c map_engine.cc -o map_engine.o -std=c++11
+.PHONY: clean
 
-protocol_parser.o: protocol_parser.cc
-	g++ -c protocol_parser.cc -o protocol_parser.o -std=c++11
+clean:
+	rm -f $(OBJS) $(TARGET)
 
-.PHONY:
-clear:
-	rm *.o kvs

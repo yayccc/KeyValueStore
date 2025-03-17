@@ -1,6 +1,8 @@
 #include "map_engine.h"
+#include "write_ahead_log.h"
 
 
+WriteAheadLog logfile;
 
 //根据操作字符串返回操作码，-1表示操作错误
 int MapEngine::GetOperate(char *operate){
@@ -28,7 +30,7 @@ void MapEngine::Set(char **tokens){
     if(tokens[1] == NULL || tokens[2] == NULL){
         std::cout<<"SET: KEY OR VALUE ERROR"<<std::endl;
         return;
-    }
+    }  
     std::string key,value;
     key = tokens[1];
     value = tokens[2];
@@ -42,6 +44,10 @@ void MapEngine::Set(char **tokens){
 //根据tokens执行GET操作
 std::string MapEngine::Get(char **tokens){
 
+    if(tokens[1] == NULL){
+        std::cout<<"GET: NO KEY"<<std::endl;
+        return "NULL";
+    }
     std::string key,value;
     key = tokens[1];
     std::cout<<"key: "<<key<<std::endl;
@@ -55,7 +61,7 @@ std::string MapEngine::Get(char **tokens){
         return "NULL";
     }
     value = string_string_map_.find(key)->second;
-    std::cout<<"map["<<key<<"]:"<<value<<std::endl;
+    std::cout<<"GET:map["<<key<<"]:"<<value<<std::endl;
 
 
     return value;
@@ -68,6 +74,8 @@ void MapEngine::Mod(char **tokens){
         std::cout<<"MOD: KEY OR VALUE ERROR"<<std::endl;
         return;
     }
+
+
     std::string key,value;
     key = tokens[1];
     value = tokens[2];
@@ -87,6 +95,7 @@ void MapEngine::Del(char **tokens){
         std::cout<<"DEL: NO KEY"<<std::endl;
         return;
     }
+
     std::string key;
     key = tokens[1];
     if(string_string_map_.find(key) == string_string_map_.end()){

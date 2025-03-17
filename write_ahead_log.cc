@@ -1,8 +1,6 @@
 //data structure
 //| OP (1B) | Key Len (4B) | Key (变长) | Value Len (4B) | Value (变长) | CRC32 (4B) |
-
 #include "write_ahead_log.h"
-
 
 
 //0:SET 1:GET 2:MOD 3:DEL
@@ -113,10 +111,12 @@ void WriteAheadLog::RestoreFromSingleLog(MapEngine &map, bool enable_crc32)
     //data structure
     //|OP(1B)|Key Len(4B)|Key(变长)|Value Len(4B)|Value(变长)|CRC32(4B)|
 
+
     //打开文件
     single_log_file_.open(SINGLE_LOG_FILE_NAME,std::ios::in|std::ios::binary);
+
     if(single_log_file_.is_open()){
-        std::cout<<"log file open success"<<std::endl;
+        std::cout<<"log file open success"<<std::endl;    std::cout<<"RestoreFromSingleLog"<<std::endl;
     }
     else{
         std::cout<<"log file open failed"<<std::endl;
@@ -205,6 +205,7 @@ void WriteAheadLog::WriteToSingleLog(char *tokens[], int tokens_cnt, bool enable
     single_log_file_.open(SINGLE_LOG_FILE_NAME,std::ios::out|std::ios::app|std::ios::binary);
     if(single_log_file_.is_open()){
         std::cout<<"log file open success"<<std::endl;
+        std::cout<<"WriteToSingleLog"<<std::endl;
     }
     else{
         std::cout<<"log file open failed"<<std::endl;

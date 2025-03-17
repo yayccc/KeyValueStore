@@ -25,14 +25,25 @@ void Reactor::Run()
 
             //EPOLLIN事件
             if(events[i].events == EPOLLIN){
-                std::cout<<"EPOLLIN"<<std::endl;
-                pool.Enqueue(&Reactor::EpollIn,this,ep_fd,conn_fd);
+                //测试wrk
+                //pool.Enqueue(&Reactor::WrkRead,this,ep_fd,conn_fd);
 
+                //EPOLLIN事件
+                //pool.Enqueue(&Reactor::EpollIn,this,ep_fd,conn_fd);
+
+                //resp测试
+                pool.Enqueue(&Reactor::RespRead,this,ep_fd,conn_fd);
             }
             //EPOLLOUT事件
             else if(events[i].events == EPOLLOUT){
-                std::cout<<"EPOLLOUT"<<std::endl;
-                pool.Enqueue(&Reactor::EpollOut,this,ep_fd,conn_fd);
+                //测试wrk
+                //pool.Enqueue(&Reactor::WrkWrite,this,ep_fd,conn_fd);
+                //EPOLLOUT事件
+                //pool.Enqueue(&Reactor::EpollOut,this,ep_fd,conn_fd);
+
+                //resp测试
+                pool.Enqueue(&Reactor::RespWrite,this,ep_fd,conn_fd);
+
             }
         }
     }
@@ -83,8 +94,15 @@ void Reactor::EpollIn(int ep_fd, int conn_fd)
         connlist[conn_fd].GetRbuffer(rbuffer);
         std::cout<<"rbuffer:"<<rbuffer<<std::endl;
 
+        //测试解析器
+        #if 1
         //解析
         int tokens_cnt = parser.ParseNetCommand(rbuffer,tokens);
+
+        #else 
+        int tokens_cnt = parser.ParseRespCommand(rbuffer,tokens,map);
+
+        #endif
 
         //使用map引擎
         int operate = map.GetOperate(tokens[0]);
@@ -149,5 +167,75 @@ void Reactor::EpollIn(int ep_fd, int conn_fd)
             free(tokens[i]);
         }
     }
+    return ;
+}
+
+
+//wrk http测试读取
+void Reactor::WrkRead(int ep_fd, int conn_fd)
+{
+    if(conn_fd == listen_fd){
+        std::cout<<"accept"<<std::endl; 
+        connlist[conn_fd].AcceptCb(ep_fd,listen_fd,client_addr);
+    }
+    else{
+        connlist[conn_fd].RecvCb(ep_fd,conn_fd);
+        connlist[conn_fd].SetReadyWrite(ep_fd,conn_fd);
+        connlist[conn_fd].SetWbuffer("HTTP/1.1 200 OK\r\nContent-Length: 5\r\n\r\nhello");
+
+    }
+}
+
+
+//wrk http测试写入
+void Reactor::WrkWrite(int ep_fd, int conn_fd)
+{
+    connlist[conn_fd].SendCb(ep_fd,conn_fd);
+    connlist[conn_fd].SetReadyRead(ep_fd,conn_fd);
+}
+
+
+
+
+void Reactor::RespRead(int ep_fd, int conn_fd){
+    //accept
+    std::cout<<"conn_fd:"<<conn_fd<<std::endl;
+    if(conn_fd == listen_fd){
+        std::cout<<"accept"<<std::endl; 
+        connlist[conn_fd].AcceptCb(ep_fd,listen_fd,client_addr);
+    }
+    //recv
+    else{
+        //接收数据
+        int ret = connlist[conn_fd].RecvCb(ep_fd,conn_fd);
+        //断开连接
+        if(ret == 0){
+            epoll_ctl(ep_fd,EPOLL_CTL_DEL,conn_fd,NULL);
+            close(conn_fd);
+            return ;
+        }
+
+        //tokens
+        char *tokens[MAX_TOKENS];
+
+        //拿到并输出读缓冲区数据 
+        char *rbuffer; 
+        connlist[conn_fd].GetRbuffer(rbuffer);
+        std::cout<<"rbuffer:"<<rbuffer<<std::endl;
+
+        //测试解析器
+        std::string parser_ret = resp_parser.ParseRespCommand(rbuffer,tokens,map);
+        connlist[conn_fd].SetWbuffer((char*)parser_ret.c_str());
+
+        connlist[conn_fd].SetReadyWrite(ep_fd,conn_fd);
+    }
+  return ;
+}
+
+void Reactor::RespWrite(int ep_fd, int conn_fd){
+    //发送数据
+    connlist[conn_fd].SendCb(ep_fd,conn_fd);
+    //设置为可读事件
+    connlist[conn_fd].SetReadyRead(ep_fd,conn_fd);
     return ;
 }

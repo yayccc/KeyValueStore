@@ -6,9 +6,13 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <cstdint> 
+
+
+
+class WriteAheadLog;
 
 class MapEngine{
-
 public:
     
     //根据操作字符串返回操作码
@@ -31,7 +35,6 @@ private:
     std::unordered_map<std::string,std::string> string_string_map_;
     //操作字符串
     const char* Operate[4] = {"SET","GET","MOD","DEL",};
-
 };
 
 

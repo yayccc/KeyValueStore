@@ -4,7 +4,7 @@
 const int CONNECT_PORT = 3031;
 
 //普通操作字符串解析最大token数
-const int MAX_TOKENS = 3;
+const int MAX_TOKENS = 5;
 
 //最大EPOLL事件数
 const int MAX_EVENTS = 1024;

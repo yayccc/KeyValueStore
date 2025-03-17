@@ -30,3 +30,21 @@
 
 ## 网络模块
 并发能力较弱，会不断更新以提高网络并发能力
+
+已增加线程池，可以并发执行io任务
+
+封装了Reactor，使结构更清晰，提供运行，方便后续更改架构
+
+## 协议
+对于KVStore的命令，更新为Resp协议,支持批量操作
+例如：
+```plain
+*15\r\n
+$3\r\nSET\r\n$4\r\nkey1\r\n$6\r\nvalue1\r\n
+$3\r\nSET\r\n$4\r\nkey2\r\n$6\r\nvalue2\r\n
+$3\r\nMOD\r\n$4\r\nkey1\r\n$8\r\n"ababab"\r\n
+$3\r\nDEL\r\n$4\r\nkey2\r\n
+$3\r\nGET\r\n$4\r\nkey1\r\n
+$3\r\nGET\r\n$4\r\nkey2\r\n
+```
+进行了批量操作，包含两次SET，两次GET，一次MOD，一次DEL

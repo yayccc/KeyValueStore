@@ -16,6 +16,17 @@ public:
     //EPOLLIN事件,接收数据
     void EpollIn(int ep_fd, int conn_fd);
 
+
+
+
+    //wrk http测试
+    void WrkRead(int ep_fd,int conn_fd);
+    void WrkWrite(int ep_fd,int conn_fd);
+
+    //resp测试
+    void RespRead(int ep_fd,int conn_fd);
+    void RespWrite(int ep_fd,int conn_fd);
+
 private:
     //监听套接字初始化
     SockInit sock;
@@ -24,7 +35,8 @@ private:
     //map引擎
     MapEngine map;   
     //解析器
-    ProtocolParser parser;   
+    ProtocolParser parser;  
+    RespParser resp_parser;
     //单日志文件
     WriteAheadLog logfile;
 

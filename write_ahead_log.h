@@ -20,6 +20,9 @@ const int KEY_LEN_SIZE = 4;
 //value的长度值的字节数
 const int VALUE_LEN_SIZE = 4;
 
+class MapEngine;
+class ProtocolParser;
+
 
 class WriteAheadLog{
 public:
