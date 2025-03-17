@@ -195,6 +195,7 @@ std::string RespParser::ParseRespCommand(char *buffer, char *tokens[],MapEngine 
     ParseRespNum(resp_buffer,i,ret);
 
     while(i < resp_buffer.length()-1){
+        opt_cnt++;
         //跳过\r\n
         SkipCRLF(resp_buffer,i,ret);  
 
@@ -202,7 +203,10 @@ std::string RespParser::ParseRespCommand(char *buffer, char *tokens[],MapEngine 
         if(ParseOperation(resp_buffer,i,tokens,ret) == 1 && !opt_flag){
             opt_flag = true;
         }
-
+        else{
+            i = resp_buffer.find("\r\n",i);
+        }
+        
         //跳过\r\n
         SkipCRLF(resp_buffer,i,ret);
 
@@ -210,26 +214,39 @@ std::string RespParser::ParseRespCommand(char *buffer, char *tokens[],MapEngine 
         if(ParseKey(resp_buffer,i,tokens,ret) == 0 && opt_flag && !key_flag){
             key_flag = true;
         }
-
+        else{
+            i = resp_buffer.find("\r\n",i);
+        }
+        
         SkipCRLF(resp_buffer,i,ret);
 
         //解析value,GET和DEL操作不需要value
         if(opt_flag && key_flag && !value_flag){
             if(strcmp(tokens[0],"GET") !=0 && strcmp(tokens[0],"DEL") != 0){
-                ParseValue(resp_buffer,i,tokens,ret);
-                value_flag = true;
+               if(ParseValue(resp_buffer,i,tokens,ret) == 0){       
+                    value_flag = true;
+               }
+               else{
+                    i = resp_buffer.find("\r\n",i);
+               }
             }  
             else{
                 value_flag = true;
             }          
         }
+        else{
+            i = resp_buffer.find("\r\n",i);
+        }
 
         SkipCRLF(resp_buffer,i,ret);
 
+
+        int operate = map.GetOperate(tokens[0]);
+
         //解析完成,执行操作,并释放tokens
         if(opt_flag && key_flag && value_flag){
-
-            int operate = map.GetOperate(tokens[0]);
+            std::cout<<"1111111111: tokens[0]:"<<tokens[0]<<std::endl;
+            
             std::cout<<"parser operate:"<<operate<<std::endl;
             switch (operate){
                 case 0:{
@@ -270,18 +287,20 @@ std::string RespParser::ParseRespCommand(char *buffer, char *tokens[],MapEngine 
                     break;
                 }
             }
-
             for(int free_cnt = 0;free_cnt<tokens_cnt;free_cnt++){
                 free(tokens[free_cnt]);
-            }            
-            tokens_cnt = 0;
-            opt_flag = false;
-            key_flag = false;
-            value_flag = false;
-            opt_cnt ++;
+            }               
         }
+
+
+         
+        tokens_cnt = 0;
+        opt_flag = false;
+        key_flag = false;
+        value_flag = false;
     }
-    
+
+
     std::string opt_str = std::to_string(opt_cnt);
     ret_cnt += opt_str;
     ret_cnt += "\r\n";
@@ -353,6 +372,7 @@ int RespParser::ParseOperation(std::string &buffer, int &index, char *tokens[],s
     //操作符长度不匹配
     else{
         ret += "-ERR OP LEN\r\n";
+        index = buffer.find("\r\n",index);
         return -1;
     }
 
@@ -360,12 +380,12 @@ int RespParser::ParseOperation(std::string &buffer, int &index, char *tokens[],s
 }
 
 
-
+//解析key
 int RespParser::ParseKey(std::string &buffer, int &index, char *tokens[], std::string &ret)
 {   
     index = buffer.find('$',index);
     if(index == std::string::npos){
-        ret += "-ERR FIND NO";
+        ret += "-ERR FIND NO KEY\r\n";
         return -1;
     }
     index++;
@@ -373,6 +393,20 @@ int RespParser::ParseKey(std::string &buffer, int &index, char *tokens[], std::s
     //解析key长度
     int len = ParseRespNum(buffer,index,ret);
     
+    //如果len太大，返回错误
+    if(index + len > buffer.size()){
+        ret += "-ERR KEY LEN1\r\n";
+        index = buffer.find("\r\n",index);
+        return -1;
+    }
+
+    //如果len后面的字符不是\r\n，则返回错误
+    if(buffer[index + len] != '\r' || buffer[index + len + 1] != '\n'){
+        ret += "-ERR KEY LEN2\r\n";
+        index = buffer.find("\r\n",index);
+        return -1;
+    }
+
     //跳过\r\n  
     SkipCRLF(buffer,index,ret);
     
@@ -385,6 +419,7 @@ int RespParser::ParseKey(std::string &buffer, int &index, char *tokens[], std::s
 
 
 
+//解析value
 int RespParser::ParseValue(std::string &buffer, int &index, char *tokens[], std::string &ret)
 {
     index = buffer.find('$',index);
@@ -398,6 +433,22 @@ int RespParser::ParseValue(std::string &buffer, int &index, char *tokens[], std:
     int len = ParseRespNum(buffer,index,ret);
 
     //跳过\r\n
+    SkipCRLF(buffer,index,ret);
+
+    //如果len太大，返回错误
+    if(index + len > buffer.size()){
+        ret += "-ERR VALUE LEN1\r\n";
+        index = buffer.find("\r\n",index);
+        return -1;
+    }
+
+    //如果len后面的字符不是\r\n，则返回错误
+    if(buffer[index + len] != '\r' || buffer[index + len + 1] != '\n'){
+        ret += "-ERR VALUE LEN2 \r\n";
+        index = buffer.find("\r\n",index);
+        return -1;
+    }
+
     SkipCRLF(buffer,index,ret);
 
     tokens[2] = strdup(buffer.substr(index,len).c_str());

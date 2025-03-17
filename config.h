@@ -1,7 +1,7 @@
 #pragma once
 
 //服务器监听端口
-const int CONNECT_PORT = 3031;
+const int CONNECT_PORT = 3030;
 
 //普通操作字符串解析最大token数
 const int MAX_TOKENS = 5;
