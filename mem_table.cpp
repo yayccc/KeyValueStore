@@ -1,14 +1,14 @@
-#include "MemTable.h"
+#include "mem_table.h"
 
 
-
+//跳表初始化
 SkipList::SkipList(int max_level) : max_level_(max_level)
 {
     head_ = new SkiplistNode("","",max_level);
 }
 
 
-
+//跳表插入
 void SkipList::Insert(std::string key, std::string value)
 {   
     //update[i]记录每一层小于key的最大节点
@@ -60,7 +60,7 @@ void SkipList::Insert(std::string key, std::string value)
 }
 
 
-
+//跳表删除
 void SkipList::Delete(std::string key)
 {   
     //update[i]记录每一层小于key的最大节点
@@ -92,7 +92,7 @@ void SkipList::Delete(std::string key)
 }
 
 
-
+//跳表查找
 std::string SkipList::Search(std::string key)
 {   
     //当前节点
@@ -114,7 +114,7 @@ std::string SkipList::Search(std::string key)
 }
 
 
-
+//跳表打印
 void SkipList::Print()
 {
     
@@ -131,7 +131,7 @@ void SkipList::Print()
 }
 
 
-
+//跳表随机生成层数
 int SkipList::random_level()
 {
     std::random_device rd;  
