@@ -6,8 +6,9 @@
 #include <fstream>
 #include <cstdint>
 #include <cstring>
-#include "mem_table.h"
 
+#include "mem_table.h"
+#include "bloom_filter.h"
 
 // SSTable header
 struct SSTableHeader{
@@ -36,14 +37,14 @@ struct IndexEntry{
 struct Footer{
     uint32_t data_block_offset_;
     uint32_t index_block_offset_;
+    uint32_t bloom_filter_offset_;
+
     //uint32_t crc32_;
 };
 
 
 class SSTable{
 private:
-
-
     // SSTable 的魔数,"SSTA" in hex
     static constexpr uint32_t MAGIC_NUMBER = 0x53534154;
     // SSTable 的文件路径
@@ -68,6 +69,8 @@ public:
     std::string Get(const std::string& key);
 
     bool KeyMayExist(const std::string& key);
+    //检查key的范围
+    bool CheckKeyRange(const std::string& key);
 
 private:
     // 写入头部信息
@@ -78,5 +81,10 @@ private:
     void WriteIndexBlock(std::ofstream& out);
     // 写入尾部信息
     void WriteFooter(std::ofstream& out);
+
+    //写入布隆过滤器
+    void WriteBloomFilter(std::ofstream& out,const SkipList& data);
+
+
 };
 

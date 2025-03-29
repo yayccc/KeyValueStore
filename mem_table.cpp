@@ -56,7 +56,9 @@ void SkipList::Insert(std::string key, std::string value)
         new_node->forward[i] = update[i]->forward[i];
         update[i]->forward[i] = new_node;
     }
-
+    //更新键值对数量
+    count_++;
+    
 }
 
 

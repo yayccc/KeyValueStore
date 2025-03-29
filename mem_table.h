@@ -24,7 +24,8 @@ private:
     int level_ = 0;
     //跳表的大小
     int skiplist_size_ = 0;
-
+    //键值对的数量
+    int count_ = 0;
 public:
     SkipList(int max_level);
     ~SkipList(){};
@@ -41,6 +42,8 @@ public:
     //返回跳表的大小
     int Size() { return skiplist_size_; }
 
+    int Count() { return count_; }
+
     //获取跳表的键值对
     std::vector<std::pair<std::string,std::string>> GetData() const{
         std::vector<std::pair<std::string,std::string>> data;
@@ -51,6 +54,17 @@ public:
         }
         return data;
     }
+
+    std::vector<std::string> GetKeys() const{
+        std::vector<std::string> keys;
+        SkiplistNode* current = head_->forward[0];
+        while(current != nullptr){
+            keys.push_back(current->key);
+            current = current->forward[0];
+        }
+        return keys;
+    }
+
 };
 
 

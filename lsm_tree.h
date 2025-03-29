@@ -4,8 +4,6 @@
 #include <string>
 #include <vector>
 #include <random>
-#include "mem_table.h"
-#include "sstable.h"
 #include <thread>
 #include <memory>
 #include <mutex>
@@ -17,8 +15,11 @@
 #include <sys/types.h>
 #include <atomic>
 
+#include "mem_table.h"
+#include "sstable.h"
 
-const int MEMTABLE_SIZE = 6; //memtable的默认大小
+
+const int MEMTABLE_SIZE = 300; //memtable的默认大小
 const int IMMUTABLE_MEMTABLES_SIZE = 1;//冻结的MemTable的最大数量
 
 //LSM树

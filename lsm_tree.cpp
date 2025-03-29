@@ -44,7 +44,14 @@ std::string LSMTree::Get(const std::string &key)
     if(value.empty()){
         value = SearchInSSTables(key);
     }
-    return value;
+
+    if(value.empty()){
+        return "NULL";
+    }
+    else{
+        return value;
+    }
+
 }
 
 

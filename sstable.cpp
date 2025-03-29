@@ -12,6 +12,8 @@ bool SSTable::Write(const SkipList &data)
 
     // 写入头部信息
     WriteHeader(out,data);
+    //写入布隆过滤器
+    WriteBloomFilter(out,data);
     // 写入数据块
     WriteDataBlock(out, data);
     // 写入索引块
@@ -111,6 +113,36 @@ void SSTable::WriteFooter(std::ofstream &out){
 }
 
 
+
+void SSTable::WriteBloomFilter(std::ofstream &out, const SkipList &data)
+{
+    // 记录布隆过滤器的偏移量
+    footer_.bloom_filter_offset_ = out.tellp();
+    // 创建布隆过滤器
+    const auto &keys_data = data.GetKeys();
+    BloomFilter bloom_filter(keys_data.size());
+
+    // 将数据写入布隆过滤器
+    for (const auto &item : keys_data)
+    {
+        bloom_filter.Add(item);
+    }
+
+    //拿到布隆过滤器的位数组，大小，hash函数个数
+    const auto &bits = bloom_filter.GetBitsAligned();
+    size_t bits_size = bits.size() * sizeof(uint64_t);
+    size_t hash_count = bloom_filter.GetHashCount();
+
+    //写入元数据
+    out.write(reinterpret_cast<const char*>(&bits_size),sizeof(bits_size));
+    out.write(reinterpret_cast<const char*>(&hash_count),sizeof(hash_count));
+
+    //写入位数组
+    out.write(reinterpret_cast<const char*>(&bits[0]),bits_size);
+}
+
+
+
 // 读取特定的key
 std::string SSTable::Get(const std::string &key){
     std::ifstream in(file_path_,std::ios::binary);
@@ -179,7 +211,9 @@ std::string SSTable::Get(const std::string &key){
     return ret_value;
 }
 
-bool SSTable::KeyMayExist(const std::string &key)
+
+
+bool SSTable::CheckKeyRange(const std::string &key)
 {
     // 读取头部信息
     SSTableHeader header;
@@ -195,4 +229,46 @@ bool SSTable::KeyMayExist(const std::string &key)
     else{
         return true;
     }
+}
+
+
+
+// 检查key是否可能存在
+bool SSTable::KeyMayExist(const std::string &key)
+{   
+    // 读取头部信息并检查key范围
+    if(!CheckKeyRange(key)){
+        return false;
+    }
+
+    // 读取布隆过滤器
+    std::ifstream in(file_path_,std::ios::binary);
+    if(!in){
+        std::cerr << "Failed to open file: " << file_path_ << std::endl;
+        return false;
+    }
+
+    //读取footer
+    Footer footer;
+    in.seekg(-sizeof(footer),std::ios::end);
+    in.read(reinterpret_cast<char*>(&footer),sizeof(footer));
+
+    // 定位到布隆过滤器
+    in.seekg(footer.bloom_filter_offset_,std::ios::beg);
+
+    // 读取布隆过滤器
+    size_t bits_size;
+    size_t hash_count;
+    in.read(reinterpret_cast<char*>(&bits_size),sizeof(bits_size));
+    in.read(reinterpret_cast<char*>(&hash_count),sizeof(hash_count));
+
+    // 读取位数组
+    BloomFilter bloom_filter(header_.count_);
+    std::vector<uint64_t> bits(bits_size / sizeof(uint64_t));
+    in.read(reinterpret_cast<char*>(&bits[0]),bits_size);
+    bloom_filter.LoadBits(bits);
+
+    std::cout<<"KeyMayExist:: find in bloomfilter"<<std::endl;
+    // 检查key是否存在
+    return bloom_filter.MaybeContains(key);
 }
