@@ -3,13 +3,15 @@
 
 bool SSTable::Write(const SkipList &data)
 {   
+    std::cout<<"SSTable:: Write to file: "<<file_path_<<std::endl;
+
     std::ofstream out(file_path_, std::ios::binary | std::ios::out);
     if (!out)
     {
         std::cerr << "Failed to open file: " << file_path_ << std::endl;
         return false;
     }
-
+    
     // 写入头部信息
     WriteHeader(out,data);
     //写入布隆过滤器
@@ -23,6 +25,21 @@ bool SSTable::Write(const SkipList &data)
 
     out.close();
     return true;
+}
+
+SSTableIterator SSTable::GetIterator()
+{   
+    SSTableIterator iterator(file_path_,header_,footer_);
+    return iterator;
+}
+
+void SSTable::Delete() {
+    if (std::remove(file_path_.c_str()) != 0) {
+        std::cerr << "Failed to delete file<delete>: " << file_path_ 
+                  << ", error: " << strerror(errno) << std::endl;
+    } else {
+        std::cout << "Successfully deleted file<delete>: " << file_path_ << std::endl;
+    }
 }
 
 // 写入头部信息
@@ -58,7 +75,7 @@ void SSTable::WriteDataBlock(std::ofstream &out, const SkipList &data)
     for (const auto &item : data.GetData())
     {
         //记录索引信息
-        IndexEntry index_entry;
+        SSTableIndexEntry index_entry;
         index_entry.key_ = item.first;
         index_entry.key_length_ = item.first.size();
         index_entry.offset_ = current_offset;
@@ -148,10 +165,10 @@ std::string SSTable::Get(const std::string &key){
     std::ifstream in(file_path_,std::ios::binary);
 
     if(!in){
-        std::cerr << "Failed to open file: " << file_path_ << std::endl;
+        std::cerr << "Failed to open file<get>: " << file_path_ << std::endl;
         return "";
     }
-    std::cout<<"SSTable::Get key"<<std::endl;
+
     // 读取头部信息
     SSTableHeader header;
     in.read(reinterpret_cast<char*>(&header),sizeof(header));
@@ -162,12 +179,12 @@ std::string SSTable::Get(const std::string &key){
     }
 
     //读取footer
-    Footer footer;
+    SSTableFooter footer;
     in.seekg(-sizeof(footer),std::ios::end);
     in.read(reinterpret_cast<char*>(&footer),sizeof(footer));
 
     //读取对应索引
-    IndexEntry target_index;
+    SSTableIndexEntry target_index;
     in.seekg(footer.index_block_offset_,std::ios::beg);
     bool found = false;
     
@@ -212,7 +229,7 @@ std::string SSTable::Get(const std::string &key){
 }
 
 
-
+// 检查key的范围
 bool SSTable::CheckKeyRange(const std::string &key)
 {
     // 读取头部信息
@@ -244,12 +261,12 @@ bool SSTable::KeyMayExist(const std::string &key)
     // 读取布隆过滤器
     std::ifstream in(file_path_,std::ios::binary);
     if(!in){
-        std::cerr << "Failed to open file: " << file_path_ << std::endl;
+        std::cerr << "Failed to open file<bloom filter>: " << file_path_ << std::endl;
         return false;
     }
 
     //读取footer
-    Footer footer;
+    SSTableFooter footer;
     in.seekg(-sizeof(footer),std::ios::end);
     in.read(reinterpret_cast<char*>(&footer),sizeof(footer));
 
@@ -268,7 +285,131 @@ bool SSTable::KeyMayExist(const std::string &key)
     in.read(reinterpret_cast<char*>(&bits[0]),bits_size);
     bloom_filter.LoadBits(bits);
 
-    std::cout<<"KeyMayExist:: find in bloomfilter"<<std::endl;
     // 检查key是否存在
     return bloom_filter.MaybeContains(key);
+}
+
+SSTableIterator::SSTableIterator(const std::string &file_path)
+{
+    file_path_ = file_path;
+    file_.open(file_path,std::ios::binary);
+    if(!file_){
+        std::cerr << "Failed to open file<iterator>: " << file_path << std::endl;
+        return;
+    }
+
+    //读取头部信息
+    if(!ReadHeader()){
+        std::cerr << "Failed to read header: " << file_path << std::endl;
+        return;
+    }
+
+    //读取footer
+    if(!ReadFooter()){
+        std::cerr << "Failed to read footer: " << file_path << std::endl;
+        return;
+    }
+
+    //初始化迭代器
+    current_position_ = data_block_offset_;
+    current_count_ = 0;
+    is_end_ = false;
+    current_key_ = "";
+    current_value_ = "";
+}
+
+bool SSTableIterator::Valid() const
+{
+    //如果当前位置大于等于数据块偏移量，则说明已经到达尾部
+    if(current_position_ >= data_block_end_offset_){
+        return false;
+    }
+    return true;
+}
+
+std::string SSTableIterator::key() const
+{
+    //如果当前位置大于等于数据块偏移量，则说明已经到达尾部
+    if(current_position_ >= data_block_end_offset_){
+        return "";
+    }
+    return current_key_;
+}
+
+std::string SSTableIterator::value() const
+{
+    //如果当前位置大于等于数据块偏移量，则说明已经到达尾部
+    if(current_position_ >= data_block_end_offset_){
+        return "";
+    }
+    return current_value_;
+}
+
+void SSTableIterator::Next()
+{   
+
+    //如果文件打开失败，则返回
+    if(!file_.is_open()){
+        std::cerr << "Failed to open file<iterator>: " << file_path_ << std::endl;
+        return;
+    }
+
+    //如果当前位置大于等于数据块偏移量，则说明已经到达尾部
+    if(current_position_ >= data_block_end_offset_){
+        return;
+    }
+    //读取key长度
+    uint32_t key_length;
+    file_.read(reinterpret_cast<char*>(&key_length),sizeof(key_length));
+    //读取key
+    current_key_ = std::string(key_length,'\0');
+    file_.read(&current_key_[0],key_length);
+
+    //读取value长度
+    uint32_t value_length;
+    file_.read(reinterpret_cast<char*>(&value_length),sizeof(value_length));
+    //读取value
+    current_value_ = std::string(value_length,'\0');
+    file_.read(&current_value_[0],value_length);
+
+    //更新当前位置
+    current_position_ += key_length + value_length + sizeof(key_length) + sizeof(value_length);
+}
+
+
+
+bool SSTableIterator::ReadHeader()
+{
+    SSTableHeader header;
+    //读取头部信息
+    file_.read(reinterpret_cast<char*>(&header),sizeof(header));
+
+    //检查魔数
+    if(header.magic_number_ != MAGIC_NUMBER){
+        std::cerr << "Invalid SSTable file: " << file_path_ << std::endl;
+        return false;
+    }
+
+    total_count_ = header.count_;
+
+
+
+    return false;
+}
+
+
+
+bool SSTableIterator::ReadFooter()
+{
+    SSTableFooter footer;
+    //读取尾部信息
+    file_.read(reinterpret_cast<char*>(&footer),sizeof(footer));
+
+    data_block_offset_ = footer.data_block_offset_;
+    data_block_end_offset_ = footer.index_block_offset_;
+    index_block_offset_ = footer.index_block_offset_;
+    bloom_filter_offset_ = footer.bloom_filter_offset_;
+
+
+    return false;
 }

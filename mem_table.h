@@ -158,10 +158,5 @@ public:
         return is_frozen;
     }
 
-private:
-    //写入磁盘
-    void WriteToDisk();
-    //从磁盘读取
-    void ReadFromDisk();
 };
     

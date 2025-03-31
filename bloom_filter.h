@@ -118,7 +118,7 @@ public:
                 return false;
             }
             if(!GetBit(index)){
-                std::cout << "MaybeContains:: Key definitely not present" << std::endl;
+                //std::cout << "MaybeContains:: Key definitely not present" << std::endl;
                 return false;
             }
         }
